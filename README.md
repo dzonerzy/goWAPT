@@ -47,19 +47,19 @@ Usage of ./gowpt:
 Scan http://www.example.com and filter all `200 OK` requests
 
 	gowpt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -f "code == 200"
-
+    
 Scan http://www.example.com fuzzing `vuln` GET parameter looking for XSS (assume it had 200 tag with a legit request)
 
 	gowpt -u "http://www.example.com/?vuln=FUZZ" -w wordlist/Injections/XSS.txt -f "tags > 200"
-
+    
 Scan http://www.example.com fuzzing `vuln` POST parameter looking for XSS (assume it had 200 tag with a legit request)
 
 	gowpt -u "http://www.example.com/" -d "vuln=FUZZ" -w wordlist/Injections/XSS.txt -f "tags > 200"
-
+    
 Scan auth protected http://www.example.com and filter all `200 OK` requests
 
 	gowpt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -f "code == 200" -a "user:password"
-
+    
 ## Wordlists
 
 Wordlists comes from [wfuzz](https://github.com/xmendez/wfuzz) project! so thanks much guys!
@@ -67,6 +67,34 @@ Wordlists comes from [wfuzz](https://github.com/xmendez/wfuzz) project! so thank
 ## Look&Feel
 
 [![asciicast](https://asciinema.org/a/151130.png)](https://asciinema.org/a/151130)
+
+## Encoders
+
+Below the list of encoders available
+
+- **url** (URL encode)
+- **urlurl** (Double URL encode)
+- **html** (HTML encode)
+- **htmlhex** (HTML hex encode)
+- **unicode** (Unicode encode)
+- **hex** (Hex encode)
+- **md5hash** (MD5 hash)
+- **sha1hash** (SHA1 hash)
+- **sha2hash** (SHA2 hash)
+- **b64** (Base64 encode)
+- **b32** (Base32 encode)
+- **plain** (No encoding)
+
+## Filters
+
+You can apply filters on the following variables
+
+- **tags** (Number of tags)
+- **lines** (Number of lines of response body)
+- **words** (Number of words of response body)
+- **length** (Size of response body)
+- **code** (HTTP status code)
+- **chars** (Number of chars of response body)
 
 ## License
 
