@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/robertkrimen/otto"
 )
 
 type Result struct {
@@ -45,6 +48,8 @@ type Configuration struct {
 	upstream_proxy   string
 	upstream_url     *url.URL
 	auth             string
+	extension        string
+	headers          []string
 }
 
 type Stats struct {
@@ -74,3 +79,24 @@ const (
 )
 
 var MAX_FUZZ_KEYWORD = 5
+
+var JSVM *otto.Otto = otto.New()
+
+type JSHTTPInterceptor func(interface{}, interface{}, bool)
+
+var HTTPInterceptor JSHTTPInterceptor
+
+var haveHTTPInterceptor bool = false
+
+type Headers []string
+
+func (i *Headers) String() string {
+	return fmt.Sprintf("%s", *i)
+}
+
+func (i *Headers) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
+var headers Headers

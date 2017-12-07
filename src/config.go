@@ -75,19 +75,13 @@ func checkConfig(c *Configuration) Configuration {
 	if c.url != "" {
 		have_keyword := false
 		have_keyword = have_keyword || strings.Contains(c.url, "FUZZ")
-		if have_keyword && c.keyword_position == 0 {
-			c.keyword_position = POSITION_URL
-		}
 		have_keyword = have_keyword || strings.Contains(c.postdata, "FUZZ")
-		if have_keyword && c.keyword_position == 0 {
-			c.keyword_position = POSITION_DATA
-		}
 		have_keyword = have_keyword || strings.Contains(c.cookies, "FUZZ")
-		if have_keyword && c.keyword_position == 0 {
-			c.keyword_position = POSITION_COOKIE
+		for _, v := range c.headers {
+			have_keyword = have_keyword || strings.Contains(v, "FUZZ")
 		}
 		if !have_keyword {
-			fmt.Println("Error: Neither url nor post data nor cookie contains FUZZ keyword.")
+			fmt.Println("Error: Neither url nor post data nor cookie nor headers contains FUZZ keyword.")
 			badConfig()
 		}
 	}
@@ -127,6 +121,21 @@ func checkConfig(c *Configuration) Configuration {
 	}
 
 	initEncoders()
+
+	if c.extension != "" {
+		if _, err := os.Stat(c.extension); os.IsNotExist(err) {
+			fmt.Println("Error: Extension file does not exist.")
+			badConfig()
+		} else {
+			_, err := os.Open(c.extension)
+			if err != nil {
+				fmt.Println("Error: You don't have read permission on extension file.")
+				badConfig()
+			}
+		}
+		initExtender()
+		runExtension(c.extension)
+	}
 
 	for _, enc := range strings.Split(c.encoders, ",") {
 		enc = strings.Trim(enc, " ")

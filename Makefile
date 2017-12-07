@@ -1,6 +1,6 @@
 # GOWPT - Makefile
 # global variables
-GO=go
+GO=$(shell which go)
 OUTFILE=gowpt
 SOURCEDIR=src
 INSTALLDIR=/usr/local/bin/
@@ -8,7 +8,7 @@ INSTALLDIR=/usr/local/bin/
 
 # Do not touch these!
 SOURCES := $(shell find $(SOURCEDIR) -name '*.go')
-DEPS = github.com/nsf/termbox-go golang.org/x/net/html
+DEPS = github.com/nsf/termbox-go golang.org/x/net/html github.com/robertkrimen/otto
 
 gowpt:
 	$(info Remember to set GOPATH!)

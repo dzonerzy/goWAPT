@@ -1,6 +1,11 @@
 package main
 
 import (
+	"compress/gzip"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"net/http/httputil"
 	"os"
 	"strings"
 
@@ -84,4 +89,26 @@ func splitToFill(s string, n int) []string {
 	}
 	pieces = append(pieces, tmp)
 	return pieces
+}
+
+func response2String(response *http.Response) []byte {
+	var reader io.ReadCloser
+	switch response.Header.Get("Content-Encoding") {
+	case "gzip":
+		reader, _ = gzip.NewReader(response.Body)
+		defer reader.Close()
+	default:
+		reader = response.Body
+	}
+	respBodyBytes, _ := ioutil.ReadAll(reader)
+	reqBodyBytes, _ := ioutil.ReadAll(response.Request.Body)
+	s_req, _ := httputil.DumpRequest(response.Request, true)
+	s_res, _ := httputil.DumpResponse(response, false)
+	var full []byte
+	full = append(full, s_req...)
+	full = append(full, reqBodyBytes...)
+	full = append(full, []byte{0x0a, 0x0a, 0x0a}...)
+	full = append(full, s_res...)
+	full = append(full, respBodyBytes...)
+	return full
 }
