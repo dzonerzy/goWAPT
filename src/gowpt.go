@@ -11,7 +11,7 @@ func parseCli() Configuration {
 	var template = flag.String("t", "", "Template for request")
 	var postdata = flag.String("d", "", "POST data for request")
 	var ssl = flag.Bool("ssl", false, "Use SSL")
-	var wordlist = flag.String("w", "", "Wordlist fileop")
+	var wordlist = flag.String("w", "", "Wordlist file")
 	var usefuzzer = flag.Bool("fuzz", false, "Use the built-in fuzzer")
 	var filter = flag.String("f", "", "Filter the results")
 	var threads = flag.Int("threads", 10, "Number of threads")
