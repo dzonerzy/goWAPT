@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/nsf/termbox-go"
@@ -93,6 +94,7 @@ func splitToFill(s string, n int) []string {
 
 func response2String(response *http.Response) []byte {
 	var reader io.ReadCloser
+	var reqBodyBytes []byte
 	switch response.Header.Get("Content-Encoding") {
 	case "gzip":
 		reader, _ = gzip.NewReader(response.Body)
@@ -101,7 +103,12 @@ func response2String(response *http.Response) []byte {
 		reader = response.Body
 	}
 	respBodyBytes, _ := ioutil.ReadAll(reader)
-	reqBodyBytes, _ := ioutil.ReadAll(response.Request.Body)
+	cl, _ := strconv.Atoi(response.Request.Header.Get("Content-Length"))
+	if cl > 0 {
+		reqBodyBytes, _ = ioutil.ReadAll(response.Request.Body)
+	} else {
+		reqBodyBytes = []byte{}
+	}
 	s_req, _ := httputil.DumpRequest(response.Request, true)
 	s_res, _ := httputil.DumpResponse(response, false)
 	var full []byte

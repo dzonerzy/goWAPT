@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/robertkrimen/otto"
 )
@@ -45,8 +47,39 @@ func initExtender() {
 		}
 	})
 
-	JSVM.Set("panic", func(v string) {
-		panic(v)
+	JSVM.Set("sendRequestSync", func(method otto.Value, http_url otto.Value, post_data otto.Value, headers interface{}) interface{} {
+		method_str, m_err := method.ToString()
+		url_str, u_err := http_url.ToString()
+		post_str, p_err := post_data.ToString()
+		if m_err == nil && u_err == nil && p_err == nil {
+			if post_str != "null" {
+				post_str = "POST"
+			} else {
+				post_str = ""
+			}
+			tmp_url, url_err := url.ParseRequestURI(url_str)
+			tmp_post, post_err := url.ParseQuery(post_str)
+			tmp_req, req_err := http.NewRequest(method_str, tmp_url.String(), strings.NewReader(tmp_post.Encode()))
+			if req_err == nil && post_err == nil && url_err == nil {
+				for v, k := range headers.(map[string]interface{}) {
+					tmp_req.Header.Add(v, k.(string))
+				}
+				response, err := netClient.Do(tmp_req)
+				if err == nil {
+					return response
+				} else {
+					return nil
+				}
+			} else {
+				return nil
+			}
+		} else {
+			return nil
+		}
+	})
+
+	JSVM.Set("panic", func(v interface{}) {
+		panic(fmt.Sprintf("%v", v))
 	})
 }
 

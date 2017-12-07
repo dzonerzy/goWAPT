@@ -51,31 +51,31 @@ Usage of ./gowpt:
 Scan http://www.example.com and filter all `200 OK` requests
 
 	gowpt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -f "code == 200"
-    
+
 Scan http://www.example.com fuzzing `vuln` GET parameter looking for XSS (assume it had 200 tag with a legit request)
 
 	gowpt -u "http://www.example.com/?vuln=FUZZ" -w wordlist/Injections/XSS.txt -f "tags > 200"
-    
+
 Scan http://www.example.com fuzzing `vuln` POST parameter looking for XSS (assume it had 200 tag with a legit request)
 
 	gowpt -u "http://www.example.com/" -d "vuln=FUZZ" -w wordlist/Injections/XSS.txt -f "tags > 200"
-    
+
 Scan auth protected http://www.example.com and filter all `200 OK` requests
 
 	gowpt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -f "code == 200" -a "user:password"
- 
+
 Scan http://www.example.com adding header `Hello: world` and filter all `200 OK` requests
 
 	gowpt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -f "code == 200" -H "Hello: world"
-    
+
 Scan http://www.example.com using basic auth with user/pass `guest:guest`
 
 	gowpt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -a "guest:guest"
-    
+
 Scan http://www.example.com adding an extension
 
 	gowpt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -x myextension.js
-    
+
 ## Extension
 
 Extension are an easy way to extend gowpt features, a JavaScript VM is the responsable for loading and executing extension files.
@@ -84,12 +84,13 @@ Extension are an easy way to extend gowpt features, a JavaScript VM is the respo
 
 Below a list of currently implemented API
 
-| Method | Number of params | Type of params |
-|:------------------:|:----------------:|:------------------------------------------------------------------------:|
-| addCustomEncoder | 2 | Param1 -> EncoderName (string)<br>Param2 -> EncoderLogic (function) |
-| Panic | 1 | Param1 -> PanicText (string) |
-| dumpResponse | 2 | Param1 -> ResponseObject (http.Response)<br> Param2 -> Path (string) |
-| setHTTPInterceptor | 1 | Param1 -> HTTPCallback (function) * |
+|       Method       	| Number of params 	|                              Description                             	|                                                            Params                                                            	|
+|:------------------:	|:----------------:	|:--------------------------------------------------------------------:	|:----------------------------------------------------------------------------------------------------------------------------:	|
+| addCustomEncoder   	| 2                	| Create a custom encoder to be used with wordlists                    	| Param1 -> EncoderName (string)<br>Param2 -> EncoderLogic (function)                                                          	|
+| Panic              	| 1                	| For debugging purpose crash the application                          	| Param1 -> PanicText (string)                                                                                                 	|
+| dumpResponse       	| 2                	| Dump a full request/response to disk, useful to save testcase        	| Param1 -> ResponseObject (http.Response)<br>Param2 -> Path (string)                                                          	|
+| setHTTPInterceptor 	| 1                	| Create an interceptor for outgoing HTTP Request and ingoing reponses 	| Param1 -> HTTPCallback (function) *                                                                                          	|
+| sendRequestSync    	| 4                	|  Send an HTTP Request in a synchronous way                           	| Param1 -> Method (string)<br>Param2 -> Url (string)<br>Param3 -> PostData (string)<br>Param4 -> Headers (Object{Name:Value}) 	|
 
 **\*** **PS: When using <u>setHTTPInterceptor</u> the callback method receive 3 paramters:**
 
@@ -135,7 +136,7 @@ function myenc(data) {
 * result is an object filled with stats about the response it contains some fields
 *
 * result.tags => Number of tags in the response
-* result.code => HTTP Response stauts
+* result.code => HTTP Response status
 * result.words => Number of words in the response
 * result.lines => Number of lines in the response
 * result.chars => Number of chars in the response
@@ -149,9 +150,20 @@ setHTTPInterceptor(function(request_response, result, is_request){
 		request_response.Header.Set("Hello", "world")
 	}else{
 		dumpResponse(request_response, "/tmp/dump.txt")
+		/*
+		* Send an HTTP request in a synchronous way
+		*
+		* This API accept 4 parameters:
+		* method => GET | POST | HEAD | PUT | PATCH | UPDATE
+		* url => The url of the HTTP service
+		* post_data => The content of request bodyBytes
+		* headers => A javascript dictionary {headerName => headerValue}
+		*
+		* The response object may be null or undefined or an http.Response from golang
+		*/
+		var response = sendRequestSync("GET", "http://example.com/", null, {"Fake": "Header"})
 	}
 })
-
 ```
 
 ## Wordlists

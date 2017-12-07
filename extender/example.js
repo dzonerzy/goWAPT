@@ -45,5 +45,17 @@ setHTTPInterceptor(function(request_response, result, is_request){
 		request_response.Header.Set("Hello", "world")
 	}else{
 		dumpResponse(request_response, "/tmp/dump.txt")
+		/*
+		* Send an HTTP request in a synchronous way
+		*
+		* This API accept 4 parameters:
+		* method => GET | POST | HEAD | PUT | PATCH | UPDATE
+		* url => The url of the HTTP service
+		* post_data => The content of request bodyBytes
+		* headers => A javascript dictionary {headerName => headerValue}
+		*
+		* The response object may be null or undefined or an http.Response from golang
+		*/
+		var response = sendRequestSync("GET", "http://example.com/", null, {"Fake": "Header"})
 	}
 })
