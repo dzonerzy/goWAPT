@@ -266,6 +266,9 @@ func searchInitHotKeys() {
 }
 
 func inspectInitHotKeys() {
+	_, h := termbox.Size()
+	r_cur = 0
+	r_start = r_cur / (h - 5)
 	addCallbackMenu("fuzz", int('q'), callbackMethod(fuzzQuit))
 	addCallbackMenu("fuzz", int('Q'), callbackMethod(fuzzQuit))
 	addCallbackMenu("fuzz", int('b'), callbackMethod(fuzzBack))
