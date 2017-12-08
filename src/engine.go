@@ -89,7 +89,6 @@ func Request(ch chan Result, client *http.Client, req *http.Request, payload str
 		select {
 		case s := <-stopch:
 			if s == true {
-				panic(100)
 				return
 			}
 		default:
