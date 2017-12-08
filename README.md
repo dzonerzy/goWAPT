@@ -87,16 +87,18 @@ Below a list of currently implemented API
 |       Method       	| Number of params 	|                              Description                             	|                                                            Params                                                            	|
 |:------------------:	|:----------------:	|:--------------------------------------------------------------------:	|:----------------------------------------------------------------------------------------------------------------------------:	|
 | addCustomEncoder   	| 2                	| Create a custom encoder to be used with wordlists                    	| Param1 -> EncoderName (string)<br>Param2 -> EncoderLogic (function)                                                          	|
-| Panic              	| 1                	| For debugging purpose crash the application                          	| Param1 -> PanicText (string)                                                                                                 	|
+| panic              	| 1                	| For debugging purpose crash the application                          	| Param1 -> PanicText (string)                                                                                                 	|
 | dumpResponse       	| 2                	| Dump a full request/response to disk, useful to save testcase        	| Param1 -> ResponseObject (http.Response)<br>Param2 -> Path (string)                                                          	|
 | setHTTPInterceptor 	| 1                	| Create an interceptor for outgoing HTTP Request and ingoing reponses 	| Param1 -> HTTPCallback (function) *                                                                                          	|
-| sendRequestSync    	| 4                	|  Send an HTTP Request in a synchronous way                           	| Param1 -> Method (string)<br>Param2 -> Url (string)<br>Param3 -> PostData (string)<br>Param4 -> Headers (Object{Name:Value}) 	|
+| sendRequestSync *    	| 4                	|  Send an HTTP Request in a synchronous way                           	| Param1 -> Method (string)<br>Param2 -> Url (string)<br>Param3 -> PostData (string)<br>Param4 -> Headers (Object{Name:Value}) 	|
 
 **\*** **PS: When using <u>setHTTPInterceptor</u> the callback method receive 3 paramters:**
 
 - A request/response object
 - A result object
 - A flag object that indicate whenever the first object is a request or a response
+
+**Since the nature of sendRequestSync it will slow down the engine due to synchronous request so use moderately**
 
 More info on the example extension below:
 

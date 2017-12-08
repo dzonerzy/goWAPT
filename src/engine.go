@@ -149,11 +149,12 @@ func Request(ch chan Result, client *http.Client, req *http.Request, payload str
 				result.response = string(s_res) + bodyString
 				result.request_response = result.request + result.response
 				if haveHTTPInterceptor {
+
 					tmp_res := map[string]interface{}{"tags": result.stat.tags,
 						"code": result.stat.code, "words": result.stat.words,
 						"chars": result.stat.chars, "lines": result.stat.lines,
 						"payload": result.payload, "request": result.request,
-						"response": result.response}
+						"response": nil}
 					r := []interface{}{response, tmp_res, false}
 					extenderChan <- r
 				}
@@ -310,7 +311,7 @@ engineLoop:
 				req.Header.Set("Connection", "keep-alive")
 				if haveHTTPInterceptor {
 					r := []interface{}{req, nil, true}
-					HTTPInterceptor(r[0], r[1], r[2].(bool))
+					extenderChan <- r
 				}
 				percentage = (100 * i) / max
 				if concurrency < max_concurrency {
