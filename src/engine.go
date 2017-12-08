@@ -15,7 +15,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"golang.org/x/net/html"
@@ -26,11 +25,12 @@ var stopEngine chan bool
 var videoUpdateChan chan bool
 var concurrency int
 var netTransport = &http.Transport{
-	MaxIdleConnsPerHost: 20,
+	MaxIdleConns:        200,
+	MaxIdleConnsPerHost: 200,
 	Dial: (&net.Dialer{
-		Timeout: 2 * time.Second,
+		Timeout: 1 * time.Second,
 	}).Dial,
-	TLSHandshakeTimeout: 2 * time.Second,
+	TLSHandshakeTimeout: 1 * time.Second,
 	TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 	DisableCompression:  true,
 }
@@ -42,9 +42,15 @@ var netClient = &http.Client{
 	Transport: netTransport,
 }
 var req *http.Request
-var wg sync.WaitGroup
 var extenderChan chan []interface{}
 var extenderStopChan chan bool
+var nextRequest chan bool
+var concurrencyChan chan int
+var finishedChan chan bool
+var quitConcurrency chan bool
+var endDispose chan bool
+var stopRequest chan bool
+var stoppedViaStop bool = false
 
 func startFuzzEngine(cfg *Configuration, res *[]Result) {
 	stopFuzzingEngine = make(chan bool)
@@ -73,7 +79,7 @@ func extenderPooler() {
 	}
 }
 
-func Request(wg *sync.WaitGroup, ch chan Result, client *http.Client, req *http.Request, payload string, video chan bool, req_num int, stopch chan bool, reqBodyString string) {
+func Request(ch chan Result, client *http.Client, req *http.Request, payload string, req_num int, stopch chan bool, reqBodyString string, concChan chan int) {
 	var err error
 	var response *http.Response
 	var done bool = false
@@ -83,7 +89,7 @@ func Request(wg *sync.WaitGroup, ch chan Result, client *http.Client, req *http.
 		select {
 		case s := <-stopch:
 			if s == true {
-				extenderStopChan <- true
+				panic(100)
 				return
 			}
 		default:
@@ -143,7 +149,6 @@ func Request(wg *sync.WaitGroup, ch chan Result, client *http.Client, req *http.
 				result.request = string(s_req) + reqBodyString + "\n\n"
 				result.response = string(s_res) + bodyString
 				result.request_response = result.request + result.response
-				wg.Done()
 				if haveHTTPInterceptor {
 					tmp_res := map[string]interface{}{"tags": result.stat.tags,
 						"code": result.stat.code, "words": result.stat.words,
@@ -154,18 +159,30 @@ func Request(wg *sync.WaitGroup, ch chan Result, client *http.Client, req *http.
 					extenderChan <- r
 				}
 				ch <- result
-				video <- true
+				concurrencyChan <- (concurrency - 1)
+				nextRequest <- true
 				done = true
 			} else {
-				time.Sleep(time.Millisecond * 1000)
+				time.Sleep(time.Millisecond * 500)
 			}
 		}
 
 	}
 }
 
-func Dispose(res *[]Result, ch chan Result, until int) {
-	for i := 0; i < until; i++ {
+func modifyConcurrency(conc chan int, quitall chan bool) {
+	for {
+		select {
+		case val := <-conc:
+			concurrency = val
+		case <-quitall:
+			return
+		}
+	}
+}
+
+func Dispose(res *[]Result, ch chan Result, until int, finish chan bool, end chan bool) {
+	for i := 1; i < until; i++ {
 		select {
 		case r := <-ch:
 			initFilters(config.filter, r.stat)
@@ -173,11 +190,36 @@ func Dispose(res *[]Result, ch chan Result, until int) {
 				*res = append(*res, r)
 				videoUpdateChan <- true
 			}
+		case k := <-end:
+			if k == true {
+				finish <- true
+				return
+			}
+		}
+	}
+	finish <- true
+}
+
+func waitTillEnd(finished chan bool) {
+endLoop:
+	for {
+		select {
+		case r := <-finished:
+			if r == true {
+				break endLoop
+			}
 		}
 	}
 }
 
 func runEngine(cfg *Configuration, res *[]Result) {
+	stoppedViaStop = false
+	stopRequest = make(chan bool)
+	endDispose = make(chan bool)
+	quitConcurrency = make(chan bool)
+	finishedChan = make(chan bool)
+	concurrencyChan = make(chan int)
+	nextRequest = make(chan bool)
 	extenderChan = make(chan []interface{})
 	extenderStopChan = make(chan bool)
 	if haveHTTPInterceptor {
@@ -200,12 +242,16 @@ func runEngine(cfg *Configuration, res *[]Result) {
 		max *= 10
 	}
 	channel := make(chan Result)
+	go modifyConcurrency(concurrencyChan, quitConcurrency)
+	go Dispose(res, channel, max, finishedChan, endDispose)
+engineLoop:
 	for i := 0; i < max; i++ {
 		select {
 		case r := <-stopEngine:
 			if r == true {
-				extenderStopChan <- true
-				return
+				stoppedViaStop = true
+				endDispose <- true
+				break engineLoop
 			}
 		default:
 			if slice_wordlist[i%len(slice_wordlist)] != "" {
@@ -215,8 +261,6 @@ func runEngine(cfg *Configuration, res *[]Result) {
 				} else {
 					fuzzed_data = cfg.encoderList[rnd_encoder_num](slice_wordlist[i])
 				}
-				wg.Add(1)
-				concurrency++
 				if cfg.url != "" {
 					tmp_url = strings.Replace(cfg.url, "FUZZ", url.QueryEscape(fuzzed_data), MAX_FUZZ_KEYWORD)
 					fuzzurl, _ := url.ParseRequestURI(tmp_url)
@@ -269,20 +313,32 @@ func runEngine(cfg *Configuration, res *[]Result) {
 					r := []interface{}{req, nil, true}
 					HTTPInterceptor(r[0], r[1], r[2].(bool))
 				}
-				go Request(&wg, channel, netClient, req, fuzzed_data, videoUpdateChan, i, stopEngine, reqBody)
 				percentage = (100 * i) / max
-				if concurrency > max_concurrency {
-					wg.Wait()
-					Dispose(res, channel, concurrency)
-					concurrency = 0
+				if concurrency < max_concurrency {
+					concurrencyChan <- (concurrency + 1)
+					go Request(channel, netClient, req, fuzzed_data, i, stopRequest, reqBody, concurrencyChan)
+				} else {
+					select {
+					case r := <-nextRequest:
+						if r == true {
+							concurrencyChan <- (concurrency + 1)
+							go Request(channel, netClient, req, fuzzed_data, i, stopRequest, reqBody, concurrencyChan)
+						}
+					}
 				}
 			}
 		}
 	}
-	percentage = (100 * max) / max
-	Dispose(res, channel, concurrency)
+	waitTillEnd(finishedChan)
+	if haveHTTPInterceptor {
+		extenderStopChan <- true
+	}
+	quitConcurrency <- true
+	if !stoppedViaStop {
+		stopFuzzingEngine <- true
+	}
 	started = false
-	stopFuzzingEngine <- true
-	extenderStopChan <- true
+	percentage = (100 * max) / max
+	videoUpdateChan <- true
 	return
 }
