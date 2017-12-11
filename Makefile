@@ -8,7 +8,7 @@ INSTALLDIR=/usr/local/bin/
 
 # Do not touch these!
 SOURCES := $(shell find $(SOURCEDIR) -name '*.go')
-DEPS = github.com/nsf/termbox-go golang.org/x/net/html github.com/robertkrimen/otto
+DEPS = github.com/nsf/termbox-go golang.org/x/net/html github.com/robertkrimen/otto github.com/elazarl/goproxy
 
 gowpt:
 	$(info Remember to set GOPATH!)

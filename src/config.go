@@ -2,24 +2,107 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/elazarl/goproxy"
 )
+
+var srvCloser io.Closer
+var received bool = false
+var globalConfig *Configuration
 
 func badConfig() {
 	os.Exit(-1)
 }
 
+func formatRequest(r *http.Request) string {
+	var request string
+	url := fmt.Sprintf("%v %v %v\n", r.Method, r.URL, r.Proto)
+	request += url
+	request += fmt.Sprintf("Host: %v\n", r.Host)
+	for name, headers := range r.Header {
+		name = strings.ToLower(name)
+		for _, h := range headers {
+			request += fmt.Sprintf("%v: %v\n", name, h)
+		}
+	}
+	if r.Method == "POST" {
+		b, _ := ioutil.ReadAll(r.Body)
+		request += "\n"
+		request += string(b)
+	}
+	return request
+}
+
+func handleRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+	if req.URL.Scheme == "https" {
+		globalConfig.ssl = true
+	} else {
+		globalConfig.ssl = false
+	}
+	data := formatRequest(req)
+	if !strings.Contains(data, "FUZZ") {
+		fmt.Println("Error: When using proxy mode a keyword FUZZ must be specified inside request.")
+		badConfig()
+	} else {
+		globalConfig.templateData = data
+	}
+	return req, goproxy.NewResponse(req,
+		goproxy.ContentTypeText, http.StatusOK,
+		"Request received by GOWPT")
+}
+
+func handleResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+	received = true
+	return resp
+}
+
+func ListenAndServeWithClose(addr string, handler http.Handler) (sc io.Closer, err error) {
+	var listener net.Listener
+	srv := &http.Server{Addr: addr, Handler: handler}
+	if addr == "" {
+		addr = ":http"
+	}
+	listener, err = net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		srv.Serve(tcpKeepAliveListener{listener.(*net.TCPListener)})
+	}()
+	return listener, nil
+}
+
+type tcpKeepAliveListener struct {
+	*net.TCPListener
+}
+
+func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
+	tc, err := ln.AcceptTCP()
+	if err != nil {
+		return
+	}
+	tc.SetKeepAlive(true)
+	tc.SetKeepAlivePeriod(3 * time.Minute)
+	return tc, nil
+}
+
 func checkConfig(c *Configuration) Configuration {
-	if c.url == "" && c.template == "" {
+	globalConfig = c
+	if c.url == "" && c.template == "" && c.from_proxy == false {
 		fmt.Println("Error: At least an url or a template must be specified.")
 		badConfig()
 	}
 
-	if c.url != "" && c.template != "" {
+	if c.url != "" && c.template != "" && c.from_proxy == true {
 		fmt.Println("Error: You must define only one option.")
 		badConfig()
 	}
@@ -106,7 +189,6 @@ func checkConfig(c *Configuration) Configuration {
 		badConfig()
 	}
 
-	fmt.Println(c.wordlist)
 	if c.wordlist != "" {
 		if _, err := os.Stat(c.wordlist); os.IsNotExist(err) {
 			fmt.Println("Error: Wordlist file does not exist.")
@@ -170,6 +252,21 @@ func checkConfig(c *Configuration) Configuration {
 
 	if c.auth != "" {
 		c.auth = "Basic " + b64(c.auth)
+	}
+
+	if c.from_proxy && c.url == "" && c.template == "" {
+		proxy := goproxy.NewProxyHttpServer()
+		proxy.OnRequest(goproxy.ReqHostMatches(regexp.MustCompile("^.*$"))).
+			HandleConnect(goproxy.AlwaysMitm)
+		proxy.OnRequest().DoFunc(handleRequest)
+		proxy.OnResponse().DoFunc(handleResponse)
+		fmt.Println("[*] Receiving requests on < 127.0.0.1:31337 >")
+		srvCloser, _ = ListenAndServeWithClose(":31337", proxy)
+		for !received {
+		}
+		time.Sleep(time.Second * 1)
+		srvCloser.Close()
+		c.template = "** FROM PROXY **"
 	}
 
 	max_concurrency = c.threads

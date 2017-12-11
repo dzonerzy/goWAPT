@@ -36,6 +36,7 @@ type Configuration struct {
 	templateData     string
 	postdata         string
 	ssl              bool
+	from_proxy       bool
 	wordlist         string
 	usefuzzer        bool
 	filter           string

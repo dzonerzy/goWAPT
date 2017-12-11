@@ -293,6 +293,8 @@ engineLoop:
 				} else if cfg.templateData != "" {
 					tmp_data := strings.Replace(cfg.templateData, "FUZZ", url.QueryEscape(fuzzed_data), 1)
 					tmp_req, _ := http.ReadRequest(bufio.NewReader(strings.NewReader(tmp_data)))
+					tmp_req.URL.Scheme = ""
+					tmp_req.URL.Host = ""
 					var full_url string = ""
 					if cfg.ssl {
 						full_url = fmt.Sprintf("%s%s%s", "https://", tmp_req.Host, tmp_req.URL.String())

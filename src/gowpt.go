@@ -20,6 +20,7 @@ func parseCli() Configuration {
 	var upstream = flag.String("p", "", "Use upstream proxy")
 	var auth = flag.String("a", "", "Basic authentication (user:password)")
 	var extension = flag.String("x", "", "Extension file example.js")
+	var viaproxy = flag.Bool("from-proxy", false, "Get the request via a proxy server")
 	flag.Var(&headers, "H", "A list of additional headers")
 	flag.Parse()
 	config = Configuration{url: *url,
@@ -27,7 +28,7 @@ func parseCli() Configuration {
 		ssl: *ssl, wordlist: *wordlist, usefuzzer: *usefuzzer,
 		filter: *filter, threads: *threads, encoders: *encoders,
 		cookies: *cookies, upstream_proxy: *upstream, auth: *auth,
-		extension: *extension, headers: headers}
+		extension: *extension, headers: headers, from_proxy: *viaproxy}
 	config = checkConfig(&config)
 	return config
 }
