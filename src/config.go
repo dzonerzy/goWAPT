@@ -25,6 +25,8 @@ func badConfig() {
 
 func formatRequest(r *http.Request) string {
 	var request string
+	r.URL.Host = ""
+	r.URL.Scheme = ""
 	url := fmt.Sprintf("%v %v %v\n", r.Method, r.URL, r.Proto)
 	request += url
 	request += fmt.Sprintf("Host: %v\n", r.Host)
@@ -38,8 +40,27 @@ func formatRequest(r *http.Request) string {
 		b, _ := ioutil.ReadAll(r.Body)
 		request += "\n"
 		request += string(b)
+	} else {
+		request += "\n"
 	}
 	return request
+}
+
+func NonProxyHandler(w http.ResponseWriter, req *http.Request) {
+	if req.URL.Scheme == "https" {
+		globalConfig.ssl = true
+	} else {
+		globalConfig.ssl = false
+	}
+	data := formatRequest(req)
+	if !strings.Contains(data, "FUZZ") {
+		fmt.Println("Error: When using proxy mode a keyword FUZZ must be specified inside request.")
+		badConfig()
+	} else {
+		globalConfig.templateData = data
+	}
+	http.Error(w, "Request received by GOWPT (Transparent)", 200)
+	received = true
 }
 
 func handleRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
@@ -256,11 +277,11 @@ func checkConfig(c *Configuration) Configuration {
 
 	if c.from_proxy && c.url == "" && c.template == "" {
 		proxy := goproxy.NewProxyHttpServer()
-		proxy.OnRequest(goproxy.ReqHostMatches(regexp.MustCompile("^.*$"))).
-			HandleConnect(goproxy.AlwaysMitm)
+		proxy.NonproxyHandler = http.HandlerFunc(NonProxyHandler)
+		proxy.OnRequest(goproxy.ReqHostMatches(regexp.MustCompile("^.*$"))).HandleConnect(goproxy.AlwaysMitm)
 		proxy.OnRequest().DoFunc(handleRequest)
 		proxy.OnResponse().DoFunc(handleResponse)
-		fmt.Println("[*] Receiving requests on < 127.0.0.1:31337 >")
+		fmt.Println("[*] Receiving requests on [127.0.0.1:31337]")
 		srvCloser, _ = ListenAndServeWithClose(":31337", proxy)
 		for !received {
 		}

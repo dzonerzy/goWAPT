@@ -15,7 +15,7 @@ sudo make install
 From the `-h` menu
 
 ```
-Usage of ./gowpt:
+Usage of gowpt:
   -H value
     	A list of additional headers
   -a string
