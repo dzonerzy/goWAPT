@@ -296,11 +296,13 @@ func fuzzInitHotkeys() {
 	addCallbackMenu("fuzz", int(termbox.KeyArrowUp), callbackMethod(fuzzDecCursor))
 }
 
-func updateStats() {
+func updateStats(drawpercentage bool) {
 	if w, h, correctSize := checkSize(); correctSize {
 		if draw_item == DRAW_STATS {
 			drawStats(results, cur)
-			drawPercent(percentage)
+			if drawpercentage {
+				drawPercent(percentage)
+			}
 			if started {
 				drawMultiColor(w-16, h-1, "^7STATUS^8: ^5Running", 0xf2)
 			} else {
@@ -341,9 +343,9 @@ loop:
 				break loop
 			}
 		case <-videoUpdateChan:
-			updateStats()
+			updateStats(true)
 		default:
-			updateStats()
+			updateStats(true)
 		}
 	}
 }

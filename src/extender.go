@@ -42,9 +42,11 @@ func initExtender() {
 			} else {
 				return otto.TrueValue()
 			}
+			return otto.TrueValue()
 		default:
 			return otto.FalseValue()
 		}
+		return otto.FalseValue()
 	})
 
 	JSVM.Set("sendRequestSync", func(method otto.Value, http_url otto.Value, post_data otto.Value, headers interface{}) interface{} {

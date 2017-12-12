@@ -23,7 +23,6 @@ import (
 var stopFuzzingEngine chan bool
 var stopEngine chan bool
 var videoUpdateChan chan bool
-var concurrency int
 var netTransport = &http.Transport{
 	MaxIdleConns:        200,
 	MaxIdleConnsPerHost: 200,
@@ -51,6 +50,8 @@ var quitConcurrency chan bool
 var endDispose chan bool
 var stopRequest chan bool
 var stoppedViaStop bool = false
+var concurrency int
+var extenderFuncCompleted chan bool
 
 func startFuzzEngine(cfg *Configuration, res *[]Result) {
 	stopFuzzingEngine = make(chan bool)
@@ -75,6 +76,7 @@ func extenderPooler() {
 			return
 		case r := <-extenderChan:
 			HTTPInterceptor(r[0], r[1], r[2].(bool))
+			extenderFuncCompleted <- true
 		}
 	}
 }
@@ -154,12 +156,16 @@ func Request(ch chan Result, client *http.Client, req *http.Request, payload str
 						"code": result.stat.code, "words": result.stat.words,
 						"chars": result.stat.chars, "lines": result.stat.lines,
 						"payload": result.payload, "request": result.request,
-						"response": nil}
-					r := []interface{}{response, tmp_res, false}
+						"response": result.response}
+					tmp_response := *response
+					r := []interface{}{&tmp_response, tmp_res, false}
 					extenderChan <- r
+					select {
+					case <-extenderFuncCompleted:
+
+					}
 				}
 				ch <- result
-				concurrencyChan <- (concurrency - 1)
 				nextRequest <- true
 				done = true
 			} else {
@@ -167,17 +173,6 @@ func Request(ch chan Result, client *http.Client, req *http.Request, payload str
 			}
 		}
 
-	}
-}
-
-func modifyConcurrency(conc chan int, quitall chan bool) {
-	for {
-		select {
-		case val := <-conc:
-			concurrency = val
-		case <-quitall:
-			return
-		}
 	}
 }
 
@@ -198,6 +193,7 @@ func Dispose(res *[]Result, ch chan Result, until int, finish chan bool, end cha
 		}
 	}
 	finish <- true
+	return
 }
 
 func waitTillEnd(finished chan bool) {
@@ -213,6 +209,7 @@ endLoop:
 }
 
 func runEngine(cfg *Configuration, res *[]Result) {
+	extenderFuncCompleted = make(chan bool)
 	stoppedViaStop = false
 	stopRequest = make(chan bool)
 	endDispose = make(chan bool)
@@ -242,7 +239,6 @@ func runEngine(cfg *Configuration, res *[]Result) {
 		max *= 10
 	}
 	channel := make(chan Result)
-	go modifyConcurrency(concurrencyChan, quitConcurrency)
 	go Dispose(res, channel, max, finishedChan, endDispose)
 engineLoop:
 	for i := 0; i < max; i++ {
@@ -253,6 +249,8 @@ engineLoop:
 				endDispose <- true
 				break engineLoop
 			}
+		case val := <-concurrencyChan:
+			concurrency = val
 		default:
 			if slice_wordlist[i%len(slice_wordlist)] != "" {
 				rnd_encoder_num := rand.Intn(len(cfg.encoderList))
@@ -314,16 +312,18 @@ engineLoop:
 				if haveHTTPInterceptor {
 					r := []interface{}{req, nil, true}
 					extenderChan <- r
+					select {
+					case <-extenderFuncCompleted:
+					}
 				}
 				percentage = (100 * i) / max
 				if concurrency < max_concurrency {
-					concurrencyChan <- (concurrency + 1)
+					concurrency += 1
 					go Request(channel, netClient, req, fuzzed_data, i, stopRequest, reqBody, concurrencyChan)
 				} else {
 					select {
 					case r := <-nextRequest:
 						if r == true {
-							concurrencyChan <- (concurrency + 1)
 							go Request(channel, netClient, req, fuzzed_data, i, stopRequest, reqBody, concurrencyChan)
 						}
 					}
@@ -335,7 +335,6 @@ engineLoop:
 	if haveHTTPInterceptor {
 		extenderStopChan <- true
 	}
-	quitConcurrency <- true
 	if !stoppedViaStop {
 		stopFuzzingEngine <- true
 	}
