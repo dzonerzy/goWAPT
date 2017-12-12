@@ -59,7 +59,7 @@ func NonProxyHandler(w http.ResponseWriter, req *http.Request) {
 	} else {
 		globalConfig.templateData = data
 	}
-	http.Error(w, "Request received by GOWPT (Transparent)", 200)
+	http.Error(w, "Request received by GOWAPT (Transparent)", 200)
 	received = true
 }
 
@@ -78,7 +78,7 @@ func handleRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *ht
 	}
 	return req, goproxy.NewResponse(req,
 		goproxy.ContentTypeText, http.StatusOK,
-		"Request received by GOWPT")
+		"Request received by GOWAPT")
 }
 
 func handleResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {

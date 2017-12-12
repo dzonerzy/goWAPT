@@ -1,7 +1,7 @@
 # GOWPT - Makefile
 # global variables
 GO=$(shell which go)
-OUTFILE=gowpt
+OUTFILE=gowapt
 SOURCEDIR=src
 INSTALLDIR=/usr/local/bin/
 

@@ -29,11 +29,11 @@ func infoInitTerminal() {
 		drawHeader("^7Go Web Application Penetration Test made with ^1❤  ^7by DZONERZY")
 		drawCenterCenterAlign(termbox.ColorWhite, termbox.ColorDefault, "Go Web Application Pentration Test\n"+
 			"made by DZONERZY\n"+
-			"GOWPT is an active WebApp fuzzer\n"+
+			"GOWAPT is an active WebApp fuzzer\n"+
 			"it can be used to check for common/uncommon vulnerabilities\n"+
-			"GOWPT it's more then a scanner, it may help you secure you application\n"+
+			"GOWAPT it's more then a scanner, it may help you secure you application\n"+
 			"finding and exploitig web application vulnerabilities\n"+
-			"GOWPT is written in Go (Golang) so it's extremely fast and relaiable\n\n"+
+			"GOWAPT is written in Go (Golang) so it's extremely fast and relaiable\n\n"+
 			"For info and bug send mail to danielelinguaglossa@gmail.com")
 		drawFooter("^7[^1Q^7] Quit ^7[^1B^7] Back")
 	} else {

@@ -1,10 +1,10 @@
-# GOWPT - Go Web Application Penetration Test
+# GOWAPT - Go Web Application Penetration Test
 
-GOWPT is the younger brother of [wfuzz](https://github.com/xmendez/wfuzz) a swiss army knife of WAPT, it allow pentester to perform huge activity with no stress at all, just configure it and it's just a matter of clicks.
+GOWAPT is the younger brother of [wfuzz](https://github.com/xmendez/wfuzz) a swiss army knife of WAPT, it allow pentester to perform huge activity with no stress at all, just configure it and it's just a matter of clicks.
 
 ## How to install
 
-To install `gowpt` just type:
+To install `gowapt` just type:
 ```bash
 make
 sudo make install
@@ -15,7 +15,7 @@ sudo make install
 From the `-h` menu
 
 ```
-Usage of gowpt:
+Usage of gowapt:
   -H value
     	A list of additional headers
   -a string
@@ -52,42 +52,42 @@ Usage of gowpt:
 
 Scan http://www.example.com and filter all `200 OK` requests
 
-	gowpt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -f "code == 200"
+	gowapt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -f "code == 200"
 
 Scan http://www.example.com fuzzing `vuln` GET parameter looking for XSS (assume it had 200 tag with a legit request)
 
-	gowpt -u "http://www.example.com/?vuln=FUZZ" -w wordlist/Injections/XSS.txt -f "tags > 200"
+	gowapt -u "http://www.example.com/?vuln=FUZZ" -w wordlist/Injections/XSS.txt -f "tags > 200"
 
 Scan http://www.example.com fuzzing `vuln` POST parameter looking for XSS (assume it had 200 tag with a legit request)
 
-	gowpt -u "http://www.example.com/" -d "vuln=FUZZ" -w wordlist/Injections/XSS.txt -f "tags > 200"
+	gowapt -u "http://www.example.com/" -d "vuln=FUZZ" -w wordlist/Injections/XSS.txt -f "tags > 200"
 
 Scan auth protected http://www.example.com and filter all `200 OK` requests
 
-	gowpt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -f "code == 200" -a "user:password"
+	gowapt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -f "code == 200" -a "user:password"
 
 Scan http://www.example.com adding header `Hello: world` and filter all `200 OK` requests
 
-	gowpt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -f "code == 200" -H "Hello: world"
+	gowapt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -f "code == 200" -H "Hello: world"
 
 Scan http://www.example.com using basic auth with user/pass `guest:guest`
 
-	gowpt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -a "guest:guest"
+	gowapt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -a "guest:guest"
 
 Scan http://www.example.com adding an extension
 
-	gowpt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -x myextension.js
+	gowapt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -x myextension.js
 
 Scan http://www.example.com (received from proxy) and filter all `200 OK` requests
 
-	gowpt --from-proxy -w wordlist/general/common.txt
+	gowapt --from-proxy -w wordlist/general/common.txt
 
 Then open BurpSuite send the request you want to fuzz to repeater and set an upstream proxy to 127.0.0.1:31337
-when you're ready click send, if everything was right you should see as response `Request received by GOWPT`
+when you're ready click send, if everything was right you should see as response `Request received by GOWAPT`
 
 ## Extension
 
-Extension are an easy way to extend gowpt features, a JavaScript VM is the responsable for loading and executing extension files.
+Extension are an easy way to extend gowapt features, a JavaScript VM is the responsible for loading and executing extension files.
 
 ### JS Api
 
@@ -98,10 +98,10 @@ Below a list of currently implemented API
 | addCustomEncoder   	| 2                	| Create a custom encoder to be used with wordlists                    	| Param1 -> EncoderName (string)<br>Param2 -> EncoderLogic (function)                                                          	|
 | panic              	| 1                	| For debugging purpose crash the application                          	| Param1 -> PanicText (string)                                                                                                 	|
 | dumpResponse       	| 2                	| Dump a full request/response to disk, useful to save testcase        	| Param1 -> ResponseObject (http.Response)<br>Param2 -> Path (string)                                                          	|
-| setHTTPInterceptor 	| 1                	| Create an interceptor for outgoing HTTP Request and ingoing reponses 	| Param1 -> HTTPCallback (function) *                                                                                          	|
+| setHTTPInterceptor 	| 1                	| Create an interceptor for outgoing HTTP Request and ingoing responses 	| Param1 -> HTTPCallback (function) *                                                                                          	|
 | sendRequestSync *    	| 4                	|  Send an HTTP Request in a synchronous way                           	| Param1 -> Method (string)<br>Param2 -> Url (string)<br>Param3 -> PostData (string)<br>Param4 -> Headers (Object{Name:Value}) 	|
 
-**\*** **PS: When using <u>setHTTPInterceptor</u> the callback method receive 3 paramters:**
+**\*** **PS: When using <u>setHTTPInterceptor</u> the callback method receive 3 parameters:**
 
 - A request/response object
 - A result object
@@ -215,4 +215,4 @@ You can apply filters on the following variables
 
 ## License
 
-`gowpt` is released under the GPL 3.0 license and it's copyleft of Daniele 'dzonerzy' Linguaglossa
+`gowapt` is released under the GPL 3.0 license and it's copyleft of Daniele 'dzonerzy' Linguaglossa

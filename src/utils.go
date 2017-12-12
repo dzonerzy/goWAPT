@@ -102,7 +102,7 @@ func response2String(response *http.Response) []byte {
 	default:
 		reader = response.Body
 	}
-	respBodyBytes, _ := ioutil.ReadAll(reader)
+	respBodyBytes, _ := ioutil.ReadAll(response.Body)
 	cl, _ := strconv.Atoi(response.Request.Header.Get("Content-Length"))
 	if cl > 0 {
 		reqBodyBytes, _ = ioutil.ReadAll(response.Request.Body)
