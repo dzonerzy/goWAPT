@@ -19,6 +19,7 @@ var search_write_pos = 1
 var search_term []string
 var goto_req []string
 var request_search_pos = -1
+var wassearching bool = false
 
 type ByRequestNumber []Result
 
@@ -158,17 +159,17 @@ func inspectHandleKey(x int) interface{} {
 				for i := r_cur + 1; i < len(r); i++ {
 					if strings.Contains(strings.ToLower(r[i]), strings.ToLower(term)) {
 						r_cur = i
-						r_start = r_cur / (h - 5)
+						r_start = i / (h - 5)
 						found = true
 						break searchLoop
 					}
-
 				}
 				if !found {
 					r_cur = 0
 					r_start = r_cur / (h - 5)
 				}
 			}
+			wassearching = true
 			draw_item = DRAW_REQUEST
 			resetCallbacks("fuzz")
 			inspectInitHotKeys()
@@ -266,9 +267,13 @@ func searchInitHotKeys() {
 }
 
 func inspectInitHotKeys() {
-	_, h := termbox.Size()
-	r_cur = 0
-	r_start = r_cur / (h - 5)
+	if !wassearching {
+		_, h := termbox.Size()
+		r_cur = 0
+		r_start = r_cur / (h - 5)
+	} else {
+		wassearching = !wassearching
+	}
 	addCallbackMenu("fuzz", int('q'), callbackMethod(fuzzQuit))
 	addCallbackMenu("fuzz", int('Q'), callbackMethod(fuzzQuit))
 	addCallbackMenu("fuzz", int('b'), callbackMethod(fuzzBack))
