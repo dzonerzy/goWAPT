@@ -113,6 +113,7 @@ func Request(ch chan Result, client *http.Client, req *http.Request, payload str
 				switch response.Header.Get("Content-Encoding") {
 				case "gzip":
 					reader, err = gzip.NewReader(response.Body)
+					response.Header.Set("Content-Encoding", "identity")
 					defer reader.Close()
 				default:
 					reader = response.Body
