@@ -301,7 +301,9 @@ engineLoop:
 						full_url = fmt.Sprintf("%s%s%s", "http://", tmp_req.Host, tmp_req.URL.String())
 					}
 					full_url_parsed, _ := url.ParseRequestURI(full_url)
-					req, _ = http.NewRequest(tmp_req.Method, full_url_parsed.String(), strings.NewReader(tmp_req.Form.Encode()))
+					body, _ := ioutil.ReadAll(tmp_req.Body)
+					reqBody = string(body)
+					req, _ = http.NewRequest(tmp_req.Method, full_url_parsed.String(), strings.NewReader(reqBody))
 					req.Header = tmp_req.Header
 				}
 				if cfg.auth != "" {
