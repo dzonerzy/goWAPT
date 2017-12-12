@@ -1,8 +1,6 @@
 package main
 
 import (
-	"compress/gzip"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -93,15 +91,7 @@ func splitToFill(s string, n int) []string {
 }
 
 func response2String(response *http.Response) []byte {
-	var reader io.ReadCloser
 	var reqBodyBytes []byte
-	switch response.Header.Get("Content-Encoding") {
-	case "gzip":
-		reader, _ = gzip.NewReader(response.Body)
-		defer reader.Close()
-	default:
-		reader = response.Body
-	}
 	respBodyBytes, _ := ioutil.ReadAll(response.Body)
 	cl, _ := strconv.Atoi(response.Request.Header.Get("Content-Length"))
 	if cl > 0 {
