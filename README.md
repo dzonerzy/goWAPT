@@ -78,9 +78,14 @@ Scan http://www.example.com adding an extension
 
 	gowapt -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt -x myextension.js
 
+Scan http://www.example.com through a proxy (like Burp):
+
+	gowapt -p "http://localhost:8080" -u "http://www.example.com/FUZZ" -w wordlist/general/common.txt
+	
 Scan http://www.example.com (received from proxy) and filter all `200 OK` requests
 
 	gowapt --from-proxy -w wordlist/general/common.txt
+
 
 Then open BurpSuite send the request you want to fuzz to repeater and set an upstream proxy to 127.0.0.1:31337
 when you're ready click send, if everything was right you should see as response `Request received by GOWAPT`
