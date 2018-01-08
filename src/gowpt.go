@@ -21,6 +21,8 @@ func parseCli() Configuration {
 	var auth = flag.String("a", "", "Basic authentication (user:password)")
 	var extension = flag.String("x", "", "Extension file example.js")
 	var viaproxy = flag.Bool("from-proxy", false, "Get the request via a proxy server")
+	var scanner = flag.Bool("scanner", false, "Run in scanning mode")
+	var plugin_dir = flag.String("plugin-dir", "", "Directory containing all scanning module")
 	flag.Var(&headers, "H", "A list of additional headers")
 	flag.Parse()
 	config = Configuration{url: *url,
@@ -28,19 +30,36 @@ func parseCli() Configuration {
 		ssl: *ssl, wordlist: *wordlist, usefuzzer: *usefuzzer,
 		filter: *filter, threads: *threads, encoders: *encoders,
 		cookies: *cookies, upstream_proxy: *upstream, auth: *auth,
-		extension: *extension, headers: headers, from_proxy: *viaproxy}
+		extension: *extension, headers: headers, from_proxy: *viaproxy,
+		scanner: *scanner, plugin_dir: *plugin_dir}
 	config = checkConfig(&config)
 	return config
 }
 
 func main() {
 	cfg := parseCli()
-	err := termbox.Init()
-	if err != nil {
-		panic(err)
+	if !cfg.scanner {
+		err := termbox.Init()
+		if err != nil {
+			panic(err)
+		}
+		defer termbox.Close()
+		termbox.SetInputMode(termbox.InputEsc)
+		termbox.SetOutputMode(termbox.Output256)
+		mainMenu(cfg)
+	} else {
+		initScanner(&cfg)
+		err := termbox.Init()
+		if err != nil {
+			panic(err)
+		}
+		defer termbox.Close()
+		termbox.SetInputMode(termbox.InputEsc)
+		termbox.SetOutputMode(termbox.Output256)
+		initPrints()
+		started = true
+		go startScanEngine(cfg.base_request, &ScannerPlugins)
+		fuzz_menu_is_fuzz = false
+		fuzzMenu()
 	}
-	defer termbox.Close()
-	termbox.SetInputMode(termbox.InputEsc)
-	termbox.SetOutputMode(termbox.Output256)
-	mainMenu(cfg)
 }

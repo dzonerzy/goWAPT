@@ -27,6 +27,12 @@ func (c ByRequestNumber) Len() int           { return len(c) }
 func (c ByRequestNumber) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 func (c ByRequestNumber) Less(i, j int) bool { return c[i].request_number < c[j].request_number }
 
+type ByID []TestResult
+
+func (c ByID) Len() int           { return len(c) }
+func (c ByID) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c ByID) Less(i, j int) bool { return c[i].id < c[j].id }
+
 func fuzzHandleEvents(ev termbox.Event) interface{} {
 	switch ev.Type {
 	case termbox.EventError:
@@ -59,7 +65,11 @@ func fuzzInitTerminal() {
 	if _, _, correctSize := checkSize(); correctSize {
 		drawHeader("^7Go Web Application Penetration Test made with ^1❤  ^7by DZONERZY")
 		if draw_item == DRAW_STATS {
-			drawFooter("^7[^1Q^7] Quit ^7[^1S^7] Start/Stop ^7[^1↑^7] Navigate up ^7[^1↓^7] Navigate down ^7[^1I^7] Inspect ^7[^1O^7] Order ^7[^1G^7] Goto")
+			if fuzz_menu_is_fuzz {
+				drawFooter("^7[^1Q^7] Quit ^7[^1S^7] Start/Stop ^7[^1↑^7] Navigate up ^7[^1↓^7] Navigate down ^7[^1I^7] Inspect ^7[^1O^7] Order ^7[^1G^7] Goto")
+			} else {
+				drawFooter("^7[^1Q^7] Quit ^7[^1↑^7] Navigate up ^7[^1↓^7] Navigate down ^7[^1I^7] Inspect ^7[^1O^7] Order ^7[^1G^7] Goto")
+			}
 		} else if draw_item == DRAW_REQUEST {
 			drawFooter("^7[^1Q^7] Quit ^7[^1B^7] Back ^7[^1S^7] Search ^7[^1N^7] Find Next")
 		} else if draw_item == DRAW_SEARCH {
@@ -77,20 +87,34 @@ func fuzzQuit(int) interface{} {
 }
 
 func fuzzOrder(x int) interface{} {
-	sort.Sort(ByRequestNumber(results))
+	if fuzz_menu_is_fuzz {
+		sort.Sort(ByRequestNumber(results))
+	} else {
+		sort.Sort(ByID(ScannerResults))
+	}
 	return nil
 }
 
 func fuzzStartStop(x int) interface{} {
 	if !started {
-		go startFuzzEngine(&config, &results)
+		if fuzz_menu_is_fuzz {
+			go startFuzzEngine(&config, &results)
+		}
 		cur = 0
 		start = 0
 		percentage = 0
-		results = []Result{}
+		if fuzz_menu_is_fuzz {
+			results = []Result{}
+		} else {
+			ScannerResults = []TestResult{}
+		}
 		started = true
 	} else {
-		stopFuzzingEngine <- true
+		if fuzz_menu_is_fuzz {
+			stopFuzzingEngine <- true
+		} else {
+			stopScannerEngine <- true
+		}
 		started = false
 	}
 	return nil
@@ -148,13 +172,23 @@ func inspectHandleKey(x int) interface{} {
 			}
 		} else if x != 13 {
 			if len(search_term) < w-2 {
-				search_term = append(search_term, fmt.Sprintf("%c", x))
+				c := fmt.Sprintf("%c", x)
+				if c == "%" {
+					search_term = append(search_term, "%%")
+				} else {
+					search_term = append(search_term, fmt.Sprintf("%c", x))
+				}
 			}
 		} else {
+			var r []string
 			found := false
 			term := strings.Join(search_term, "")
 			if term != "" {
-				r := splitToFill(results[cur].request_response, w)
+				if fuzz_menu_is_fuzz {
+					r = splitToFill(results[cur].request_response, w)
+				} else {
+					r = splitToFill(ScannerResults[cur].request_response, w)
+				}
 			searchLoop:
 				for i := r_cur + 1; i < len(r); i++ {
 					if strings.Contains(strings.ToLower(r[i]), strings.ToLower(term)) {
@@ -175,7 +209,8 @@ func inspectHandleKey(x int) interface{} {
 			inspectInitHotKeys()
 			fuzzInitTerminal()
 			if !found && term != "" {
-				drawCenterHorizontal(h-2, termbox.ColorRed, fmt.Sprintf("^7Term '%s' not found, restarting from top.", term))
+				msg := fmt.Sprintf("Term '%s' not found, restarting from top.", term)
+				drawCell((w/2)-(len(msg)/2), h-2, termbox.ColorWhite, termbox.ColorRed, msg)
 			}
 		}
 		termbox.Flush()
@@ -185,10 +220,15 @@ func inspectHandleKey(x int) interface{} {
 
 func inspectSearchNext(x int) interface{} {
 	w, h := termbox.Size()
+	var r []string
 	found := false
 	term := strings.Join(search_term, "")
 	if term != "" {
-		r := splitToFill(results[cur].request_response, w)
+		if fuzz_menu_is_fuzz {
+			r = splitToFill(results[cur].request_response, w)
+		} else {
+			r = splitToFill(ScannerResults[cur].request_response, w)
+		}
 	searchLoop2:
 		for i := r_cur + 1; i < len(r); i++ {
 			if strings.Contains(strings.ToLower(r[i]), strings.ToLower(term)) {
@@ -201,7 +241,8 @@ func inspectSearchNext(x int) interface{} {
 		if !found {
 			r_cur = 0
 			r_start = r_cur / (h - 5)
-			drawCenterHorizontal(h-2, termbox.ColorRed, fmt.Sprintf("^7Term '%s' not found, restarting from top.", term))
+			msg := fmt.Sprintf("Term '%s' not found, restarting from top.", term)
+			drawCell((w/2)-(len(msg)/2), h-2, termbox.ColorWhite, termbox.ColorRed, msg)
 		}
 	}
 	return nil
@@ -221,15 +262,29 @@ func gotoHandleKey(x int) interface{} {
 			}
 		} else if x != 13 {
 			if len(goto_req) < w-2 {
-				goto_req = append(goto_req, fmt.Sprintf("%c", x))
+				c := fmt.Sprintf("%c", x)
+				if c == "%" {
+					goto_req = append(goto_req, "%%")
+				} else {
+					goto_req = append(goto_req, fmt.Sprintf("%c", x))
+				}
 			}
 		} else {
 			goto_str := strings.Join(goto_req, "")
 			n, _ := strconv.Atoi(goto_str)
-			for pos, element := range results {
-				if element.request_number == n {
-					cur = pos
-					start = cur / (h - 5)
+			if fuzz_menu_is_fuzz {
+				for pos, element := range results {
+					if element.request_number == n {
+						cur = pos
+						start = cur / (h - 5)
+					}
+				}
+			} else {
+				for pos, element := range ScannerResults {
+					if element.id == n {
+						cur = pos
+						start = cur / (h - 5)
+					}
 				}
 			}
 			draw_item = DRAW_STATS
@@ -295,8 +350,10 @@ func fuzzInitHotkeys() {
 	addCallbackMenu("fuzz", int('o'), callbackMethod(fuzzOrder))
 	addCallbackMenu("fuzz", int('G'), callbackMethod(fuzzGoTo))
 	addCallbackMenu("fuzz", int('g'), callbackMethod(fuzzGoTo))
-	addCallbackMenu("fuzz", int('s'), callbackMethod(fuzzStartStop))
-	addCallbackMenu("fuzz", int('S'), callbackMethod(fuzzStartStop))
+	if fuzz_menu_is_fuzz {
+		addCallbackMenu("fuzz", int('s'), callbackMethod(fuzzStartStop))
+		addCallbackMenu("fuzz", int('S'), callbackMethod(fuzzStartStop))
+	}
 	addCallbackMenu("fuzz", int(termbox.KeyArrowDown), callbackMethod(fuzzIncCursor))
 	addCallbackMenu("fuzz", int(termbox.KeyArrowUp), callbackMethod(fuzzDecCursor))
 }
@@ -304,7 +361,11 @@ func fuzzInitHotkeys() {
 func updateStats(drawpercentage bool) {
 	if w, h, correctSize := checkSize(); correctSize {
 		if draw_item == DRAW_STATS {
-			drawStats(results, cur)
+			if fuzz_menu_is_fuzz {
+				drawStats(results, cur)
+			} else {
+				drawScanStats(ScannerResults, cur)
+			}
 			if drawpercentage {
 				drawPercent(percentage)
 			}
@@ -316,7 +377,11 @@ func updateStats(drawpercentage bool) {
 			termbox.Flush()
 
 		} else if draw_item == DRAW_REQUEST {
-			drawRequest(results[cur].request_response, r_cur)
+			if fuzz_menu_is_fuzz {
+				drawRequest(results[cur].request_response, r_cur)
+			} else {
+				drawRequest(ScannerResults[cur].request_response, r_cur)
+			}
 			termbox.Flush()
 		} else if draw_item == DRAW_SEARCH {
 			drawSearchBox(&search_term)

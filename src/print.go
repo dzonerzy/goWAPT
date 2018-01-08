@@ -50,7 +50,8 @@ func drawMultiColor(x, y int, msg string, bg termbox.Attribute, args ...interfac
 	arg_index := 0
 	tokens := strings.Split(msg, "^")
 	for i, token := range tokens {
-		if strings.Contains(token, "%") {
+		match, _ := regexp.MatchString("%[sdvfcr]+", token)
+		if match {
 			arg_count := strings.Count(token, "%")
 			if i != 0 {
 				token = "^" + token
@@ -133,6 +134,54 @@ func drawPercent(percent int) {
 func drawWidthHeight() {
 	w, h := termbox.Size()
 	drawFormat(1, 1, termbox.ColorGreen, termbox.ColorBlue, "Width: %d Height: %d", w, h)
+}
+
+func drawScanStats(r []TestResult, r_pos int) {
+	w, h := termbox.Size()
+	drawFormat(0, 1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorBlue, strings.Repeat(" ", w))
+	drawMultiColor(0, 1, "^8[^7ID^8]        ^8[^7Severity^8]        ^8[^7Plugin^8]       ^8[^7Confidence^8]^7   ^8[^7Parameter^8]^7    ^8[^7Pattern^8]^7", termbox.ColorBlue)
+	if len(r) > 0 {
+		if r_pos < 0 {
+			cur = 0
+			r_pos = 0
+		}
+
+		if r_pos > len(r)-1 {
+			cur = len(r) - 1
+			r_pos = len(r) - 1
+		}
+
+		r_pos = r_pos % len(r)
+
+		if r_pos-start >= h-5 {
+			start = r_pos - (h - 5)
+		} else if r_pos == start-1 && start > 0 {
+			start -= 1
+		}
+
+	forloop:
+		for row := 2; row < h-2; row++ {
+			if start+(row-2) > len(r)-1 {
+				break forloop
+			}
+			val := r
+			space0 := strings.Repeat(" ", 12-len(strconv.Itoa(val[start+(row-2)].id)))
+			space1 := strings.Repeat(" ", 15-len(severty_text[val[start+(row-2)].severity]))
+			space2 := strings.Repeat(" ", 18-len(val[start+(row-2)].plugin))
+			space3 := strings.Repeat(" ", 15-len(confidence_text[val[start+(row-2)].confidence]))
+			space4 := strings.Repeat(" ", 14-len(val[start+(row-2)].parameter["name"].(string)))
+			s := fmt.Sprintf(" %d%s%s%s%s%s%s%s%s%s%s", val[start+(row-2)].id, space0, severty_text[val[start+(row-2)].severity], space1, val[start+(row-2)].plugin, space2, confidence_text[val[start+(row-2)].confidence], space3, val[start+(row-2)].parameter["name"], space4, val[start+(row-2)].pattern)
+			how_many := w - len(s)
+			if how_many < 0 {
+				how_many = 0
+			}
+			if r_pos-start == row-2 {
+				drawColor(0, row, "^8%s%s", termbox.ColorGreen, s, strings.Repeat(" ", how_many))
+			} else {
+				drawColor(0, row, "^4%s%s", termbox.ColorDefault, s, strings.Repeat(" ", how_many))
+			}
+		}
+	}
 }
 
 func drawStats(r []Result, r_pos int) {

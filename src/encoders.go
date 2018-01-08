@@ -9,8 +9,6 @@ import (
 	"fmt"
 )
 
-type Encoder func(string) string
-
 var encoders = map[string]Encoder{}
 
 func _url(str string) string {

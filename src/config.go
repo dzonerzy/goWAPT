@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -53,7 +54,7 @@ func NonProxyHandler(w http.ResponseWriter, req *http.Request) {
 		globalConfig.ssl = false
 	}
 	data := formatRequest(req)
-	if !strings.Contains(data, "FUZZ") {
+	if !strings.Contains(data, "FUZZ") && !config.scanner {
 		fmt.Println("Error: When using proxy mode a keyword FUZZ must be specified inside request.")
 		badConfig()
 	} else {
@@ -70,7 +71,7 @@ func handleRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *ht
 		globalConfig.ssl = false
 	}
 	data := formatRequest(req)
-	if !strings.Contains(data, "FUZZ") {
+	if !strings.Contains(data, "FUZZ") && !config.scanner {
 		fmt.Println("Error: When using proxy mode a keyword FUZZ must be specified inside request.")
 		badConfig()
 	} else {
@@ -127,6 +128,7 @@ func checkConfig(c *Configuration) Configuration {
 		fmt.Println("Error: You must define only one option.")
 		badConfig()
 	}
+
 	if c.template != "" && c.postdata != "" {
 		fmt.Println("Error: Template option should include POST data in template.")
 		badConfig()
@@ -176,7 +178,7 @@ func checkConfig(c *Configuration) Configuration {
 		}
 	}
 
-	if c.url != "" {
+	if c.url != "" && !c.scanner {
 		have_keyword := false
 		have_keyword = have_keyword || strings.Contains(c.url, "FUZZ")
 		have_keyword = have_keyword || strings.Contains(c.postdata, "FUZZ")
@@ -190,7 +192,7 @@ func checkConfig(c *Configuration) Configuration {
 		}
 	}
 
-	if c.template != "" {
+	if c.template != "" && !c.scanner {
 		data, _ := ioutil.ReadFile(c.template)
 		if !strings.Contains(string(data), "FUZZ") {
 			fmt.Println("Error: When using template a keyword FUZZ must be specified.")
@@ -205,7 +207,7 @@ func checkConfig(c *Configuration) Configuration {
 		badConfig()
 	}
 
-	if !c.usefuzzer && c.wordlist == "" {
+	if !c.usefuzzer && c.wordlist == "" && !c.scanner {
 		fmt.Println("Error: Please specify a wordlist")
 		badConfig()
 	}
@@ -290,6 +292,56 @@ func checkConfig(c *Configuration) Configuration {
 		c.template = "** FROM PROXY **"
 	}
 
+	if c.scanner && c.plugin_dir == "" {
+		fmt.Println("Error: When using scanner mode you need a plugin directory")
+		badConfig()
+	}
+
+	if c.url != "" && c.scanner {
+		fmt.Println("Error: Scanner mode can only be used with --from-proxy")
+		badConfig()
+	}
+
+	if c.template != "** FROM PROXY **" && c.scanner {
+		fmt.Println("Error: Scanner mode can only be used with --from-proxy")
+		badConfig()
+	}
+	if c.from_proxy && c.scanner && c.plugin_dir != "" {
+		var req *http.Request
+		if c.templateData != "" {
+			tmp_req, _ := http.ReadRequest(bufio.NewReader(strings.NewReader(c.templateData)))
+			tmp_req.URL.Scheme = ""
+			tmp_req.URL.Host = ""
+			var full_url string = ""
+			if c.ssl {
+				full_url = fmt.Sprintf("%s%s%s", "https://", tmp_req.Host, tmp_req.URL.String())
+			} else {
+				full_url = fmt.Sprintf("%s%s%s", "http://", tmp_req.Host, tmp_req.URL.String())
+			}
+			full_url_parsed, _ := url.ParseRequestURI(full_url)
+			req, _ = http.NewRequest(tmp_req.Method, full_url_parsed.String(), nil)
+			req.Header = tmp_req.Header
+			req.Body = tmp_req.Body
+		}
+		if c.auth != "" {
+			req.Header.Set("Authentication", c.auth)
+		}
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36")
+		req.Header.Set("Content-Encoding", "identity")
+		req.Header.Set("Connection", "keep-alive")
+		c.base_request = req
+		levelText[2] = "Invasive"
+		levelText[4] = "Not Invasive"
+		levelText[8] = "Mid Invasive"
+		confidence_text[CONFIDENCE_CERTAIN] = "Certain"
+		confidence_text[CONFIDENCE_FIRM] = "Firm"
+		confidence_text[CONFIDENCE_POSSIBLE] = "Possible"
+		severty_text[CRITICAL] = "Critical"
+		severty_text[HIGH] = "High"
+		severty_text[MEDIUM] = "Medium"
+		severty_text[LOW] = "Low"
+		severty_text[INFO] = "Info"
+	}
 	max_concurrency = c.threads
 
 	return *c

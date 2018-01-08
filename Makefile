@@ -14,7 +14,7 @@ gowpt:
 	$(info Remember to set GOPATH!)
 	$(info Downloading dependencies $(DEPS))
 	$(foreach var,$(DEPS),$(GO) get $(var);)
-	$(GO) build -o $(OUTFILE) $(SOURCES)
+	$(GO) build -ldflags="-s -w" -o $(OUTFILE) $(SOURCES)
 
 install:
 	install -m 755 $(OUTFILE) $(INSTALLDIR)
