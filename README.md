@@ -34,6 +34,10 @@ Usage of gowapt:
     	Use the built-in fuzzer
   -p string
     	Use upstream proxy
+  -plugin-dir string
+    	Directory containing all scanning module
+  -scanner
+    	Run in scanning mode
   -ssl
     	Use SSL
   -t string
@@ -85,6 +89,10 @@ Scan http://www.example.com through a proxy (like Burp):
 Scan http://www.example.com (received from proxy) and filter all `200 OK` requests
 
 	gowapt --from-proxy -w wordlist/general/common.txt
+	
+Run scanner mode on http://www.example.com (received from proxy) with default plugins
+
+	gowapt --from-proxy --scanner --plugin-dir plugin/
 
 
 Then open BurpSuite send the request you want to fuzz to repeater and set an upstream proxy to 127.0.0.1:31337
@@ -181,6 +189,9 @@ setHTTPInterceptor(function(request_response, result, is_request){
 	}
 })
 ```
+
+## Scanner
+A new mode called `Scanner` was introduced with the latest commit , it allow user to create fully customizable plugins in order to perform active web scanning for more info read the Wiki!.
 
 ## Wordlists
 
