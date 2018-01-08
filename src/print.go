@@ -127,7 +127,7 @@ func drawPercent(percent int) {
 	nhash := ((max * percent) / 100)
 	drawMultiColor(0, h-2, "^7[", termbox.ColorDefault)
 	drawMultiColor(w-1, h-2, "^7]", termbox.ColorDefault)
-	drawMultiColor(min, h-2, strings.Repeat("^2#", nhash), termbox.ColorDefault)
+	drawMultiColor(min, h-2, strings.Repeat("^1#", nhash), termbox.ColorDefault)
 	drawMultiColor((w/2)-(len(p)/2), h-2, p, termbox.ColorDefault, 1)
 }
 

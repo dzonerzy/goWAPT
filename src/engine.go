@@ -178,7 +178,7 @@ func Request(ch chan Result, client *http.Client, req *http.Request, payload str
 }
 
 func Dispose(res *[]Result, ch chan Result, until int, finish chan bool, end chan bool) {
-	for i := 1; i < until; i++ {
+	for i := 0; i < until; i++ {
 		select {
 		case r := <-ch:
 			initFilters(config.filter, r.stat)
@@ -236,29 +236,38 @@ func runEngine(cfg *Configuration, res *[]Result) {
 	str_wordlist := string(wordlist)
 	slice_wordlist := strings.Split(str_wordlist, "\n")
 	max := len(slice_wordlist)
+	n_encoders := len(cfg.encoderList)
 	if cfg.usefuzzer {
 		max *= 10
 	}
+	max_wordlist_encoders := max * n_encoders
+	current_request := 0
 	channel := make(chan Result)
-	go Dispose(res, channel, max, finishedChan, endDispose)
+	go Dispose(res, channel, max_wordlist_encoders, finishedChan, endDispose)
 engineLoop:
-	for i := 0; i < max; i++ {
-		select {
-		case r := <-stopEngine:
-			if r == true {
-				stoppedViaStop = true
-				endDispose <- true
-				break engineLoop
-			}
-		case val := <-concurrencyChan:
-			concurrency = val
-		default:
-			if slice_wordlist[i%len(slice_wordlist)] != "" {
-				rnd_encoder_num := rand.Intn(len(cfg.encoderList))
+	for k := 0; k < n_encoders; k++ {
+		for i := 0; i < max; i++ {
+			select {
+			case r := <-stopEngine:
+				if r == true {
+					stoppedViaStop = true
+					endDispose <- true
+					break engineLoop
+				}
+			case val := <-concurrencyChan:
+				concurrency = val
+			default:
+				current_request++
+
+				//rnd_encoder_num := rand.Intn(len(cfg.encoderList))
 				if cfg.usefuzzer {
-					fuzzed_data = cfg.encoderList[rnd_encoder_num](fuzz(slice_wordlist[i%len(slice_wordlist)]))
+					if slice_wordlist[i%len(slice_wordlist)] != "" {
+						fuzzed_data = cfg.encoderList[k](fuzz(slice_wordlist[i%len(slice_wordlist)]))
+					} else {
+						fuzzed_data = cfg.encoderList[k](fuzz("/'\"><img>\" or 1 = 1/*/../../etc/passwd"))
+					}
 				} else {
-					fuzzed_data = cfg.encoderList[rnd_encoder_num](slice_wordlist[i])
+					fuzzed_data = cfg.encoderList[k](slice_wordlist[i])
 				}
 				if cfg.url != "" {
 					tmp_url = strings.Replace(cfg.url, "FUZZ", url.QueryEscape(fuzzed_data), MAX_FUZZ_KEYWORD)
@@ -319,18 +328,19 @@ engineLoop:
 					case <-extenderFuncCompleted:
 					}
 				}
-				percentage = (100 * i) / max
+				percentage = (100 * current_request) / max_wordlist_encoders
 				if concurrency < max_concurrency {
 					concurrency += 1
-					go Request(channel, netClient, req, fuzzed_data, i, stopRequest, reqBody, concurrencyChan)
+					go Request(channel, netClient, req, fuzzed_data, current_request, stopRequest, reqBody, concurrencyChan)
 				} else {
 					select {
 					case r := <-nextRequest:
 						if r == true {
-							go Request(channel, netClient, req, fuzzed_data, i, stopRequest, reqBody, concurrencyChan)
+							go Request(channel, netClient, req, fuzzed_data, current_request, stopRequest, reqBody, concurrencyChan)
 						}
 					}
 				}
+
 			}
 		}
 	}
@@ -342,7 +352,7 @@ engineLoop:
 		stopFuzzingEngine <- true
 	}
 	started = false
-	percentage = (100 * max) / max
+	percentage = (100 * max_wordlist_encoders) / max_wordlist_encoders
 	videoUpdateChan <- true
 	return
 }
