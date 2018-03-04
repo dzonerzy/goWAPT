@@ -13,7 +13,7 @@ func infoHandleEvents(ev termbox.Event) interface{} {
 			termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 			infoInitTerminal()
 			return checkCallback("info", int(ev.Ch))
-			termbox.Flush()
+			//termbox.Flush()
 		}
 	case termbox.EventResize:
 		infoInitTerminal()

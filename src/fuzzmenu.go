@@ -20,12 +20,73 @@ var search_term []string
 var goto_req []string
 var request_search_pos = -1
 var wassearching bool = false
+var order = 5
 
 type ByRequestNumber []Result
 
 func (c ByRequestNumber) Len() int           { return len(c) }
 func (c ByRequestNumber) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 func (c ByRequestNumber) Less(i, j int) bool { return c[i].request_number < c[j].request_number }
+
+type ByTagsASC []Result
+
+func (c ByTagsASC) Len() int           { return len(c) }
+func (c ByTagsASC) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c ByTagsASC) Less(i, j int) bool { return c[i].stat.tags < c[j].stat.tags }
+
+type ByTagsDESC []Result
+
+func (c ByTagsDESC) Len() int           { return len(c) }
+func (c ByTagsDESC) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c ByTagsDESC) Less(i, j int) bool { return c[i].stat.tags > c[j].stat.tags }
+
+type ByHTTPCodeASC []Result
+
+func (c ByHTTPCodeASC) Len() int           { return len(c) }
+func (c ByHTTPCodeASC) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c ByHTTPCodeASC) Less(i, j int) bool { return c[i].stat.code < c[j].stat.code }
+
+type ByHTTPCodeDESC []Result
+
+func (c ByHTTPCodeDESC) Len() int           { return len(c) }
+func (c ByHTTPCodeDESC) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c ByHTTPCodeDESC) Less(i, j int) bool { return c[i].stat.code > c[j].stat.code }
+
+type ByWordsASC []Result
+
+func (c ByWordsASC) Len() int           { return len(c) }
+func (c ByWordsASC) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c ByWordsASC) Less(i, j int) bool { return c[i].stat.words < c[j].stat.words }
+
+type ByWordsDESC []Result
+
+func (c ByWordsDESC) Len() int           { return len(c) }
+func (c ByWordsDESC) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c ByWordsDESC) Less(i, j int) bool { return c[i].stat.words > c[j].stat.words }
+
+type ByCharsASC []Result
+
+func (c ByCharsASC) Len() int           { return len(c) }
+func (c ByCharsASC) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c ByCharsASC) Less(i, j int) bool { return c[i].stat.chars < c[j].stat.chars }
+
+type ByCharsDESC []Result
+
+func (c ByCharsDESC) Len() int           { return len(c) }
+func (c ByCharsDESC) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c ByCharsDESC) Less(i, j int) bool { return c[i].stat.chars > c[j].stat.chars }
+
+type ByLinesASC []Result
+
+func (c ByLinesASC) Len() int           { return len(c) }
+func (c ByLinesASC) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c ByLinesASC) Less(i, j int) bool { return c[i].stat.lines < c[j].stat.lines }
+
+type ByLinesDESC []Result
+
+func (c ByLinesDESC) Len() int           { return len(c) }
+func (c ByLinesDESC) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
+func (c ByLinesDESC) Less(i, j int) bool { return c[i].stat.lines > c[j].stat.lines }
 
 type ByID []TestResult
 
@@ -88,7 +149,31 @@ func fuzzQuit(int) interface{} {
 
 func fuzzOrder(x int) interface{} {
 	if fuzz_menu_is_fuzz {
-		sort.Sort(ByRequestNumber(results))
+		order = (order + 1) % 11
+		switch order {
+		case 0:
+			sort.Sort(ByRequestNumber(results))
+		case 1:
+			sort.Sort(ByTagsASC(results))
+		case 2:
+			sort.Sort(ByTagsDESC(results))
+		case 3:
+			sort.Sort(ByHTTPCodeASC(results))
+		case 4:
+			sort.Sort(ByHTTPCodeDESC(results))
+		case 5:
+			sort.Sort(ByWordsASC(results))
+		case 6:
+			sort.Sort(ByWordsDESC(results))
+		case 7:
+			sort.Sort(ByCharsASC(results))
+		case 8:
+			sort.Sort(ByCharsDESC(results))
+		case 9:
+			sort.Sort(ByLinesASC(results))
+		case 10:
+			sort.Sort(ByLinesDESC(results))
+		}
 	} else {
 		sort.Sort(ByID(ScannerResults))
 	}
@@ -362,7 +447,7 @@ func updateStats(drawpercentage bool) {
 	if w, h, correctSize := checkSize(); correctSize {
 		if draw_item == DRAW_STATS {
 			if fuzz_menu_is_fuzz {
-				drawStats(results, cur)
+				drawStats(results, cur, order)
 			} else {
 				drawScanStats(ScannerResults, cur)
 			}

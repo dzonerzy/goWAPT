@@ -15,9 +15,9 @@ function test(base_request){
   vulnerabilities = []
   cookieval = Utils.getParameter(base_request,"Cookie")
   if(cookieval != null) {
-    if(String(cookieval.curVal).indexOf(" httpOnly") == -1){
+    if(String(cookieval.curVal)toLowerCase().indexOf(" httponly") == -1){
       vuln = Scanner.makePassedTest(
-        "Cookies are not protected agains XMLHTTP",
+        "Cookies are not protected agains Javascript",
         Utils.httpToString(base_request),
         "",
         cookieval.curValue,

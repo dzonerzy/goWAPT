@@ -184,10 +184,35 @@ func drawScanStats(r []TestResult, r_pos int) {
 	}
 }
 
-func drawStats(r []Result, r_pos int) {
+func drawStats(r []Result, r_pos int, order int) {
 	w, h := termbox.Size()
 	drawFormat(0, 1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorBlue, strings.Repeat(" ", w))
-	drawMultiColor(0, 1, "^8[^7Req. No.^8]    ^8[^7Tags^8]         ^8[^7HTTP Code^8]^7    ^8[^7Words^8]^7        ^8[^7Chars^8]^7        ^8[^7Lines^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	switch order {
+	case 0:
+		drawMultiColor(0, 1, "^8[^3Req. No.^8]    ^8[^7Tags^8]         ^8[^7HTTP Code^8]^7    ^8[^7Words^8]^7        ^8[^7Chars^8]^7        ^8[^7Lines^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	case 1:
+		drawMultiColor(0, 1, "^8[^7Req. No.^8]    ^8[^3Tags↑^8]         ^8[^7HTTP Code^8]^7    ^8[^7Words^8]^7        ^8[^7Chars^8]^7        ^8[^7Lines^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	case 2:
+		drawMultiColor(0, 1, "^8[^7Req. No.^8]    ^8[^3Tags↓^8]         ^8[^7HTTP Code^8]^7    ^8[^7Words^8]^7        ^8[^7Chars^8]^7        ^8[^7Lines^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	case 3:
+		drawMultiColor(0, 1, "^8[^7Req. No.^8]    ^8[^7Tags^8]         ^8[^3HTTP Code↑^8]^7    ^8[^7Words^8]^7        ^8[^7Chars^8]^7        ^8[^7Lines^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	case 4:
+		drawMultiColor(0, 1, "^8[^7Req. No.^8]    ^8[^7Tags^8]         ^8[^3HTTP Code↓^8]^7    ^8[^7Words^8]^7        ^8[^7Chars^8]^7        ^8[^7Lines^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	case 5:
+		drawMultiColor(0, 1, "^8[^7Req. No.^8]    ^8[^7Tags^8]         ^8[^7HTTP Code^8]^7    ^8[^3Words↑^8]^7        ^8[^7Chars^8]^7        ^8[^7Lines^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	case 6:
+		drawMultiColor(0, 1, "^8[^7Req. No.^8]    ^8[^7Tags^8]         ^8[^7HTTP Code^8]^7    ^8[^3Words↓^8]^7        ^8[^7Chars^8]^7        ^8[^7Lines^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	case 7:
+		drawMultiColor(0, 1, "^8[^7Req. No.^8]    ^8[^7Tags^8]         ^8[^7HTTP Code^8]^7    ^8[^7Words^8]^7        ^8[^3Chars↑^8]^7        ^8[^7Lines^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	case 8:
+		drawMultiColor(0, 1, "^8[^7Req. No.^8]    ^8[^7Tags^8]         ^8[^7HTTP Code^8]^7    ^8[^7Words^8]^7        ^8[^3Chars↓^8]^7        ^8[^7Lines^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	case 9:
+		drawMultiColor(0, 1, "^8[^7Req. No.^8]    ^8[^7Tags^8]         ^8[^7HTTP Code^8]^7    ^8[^7Words^8]^7        ^8[^7Chars^8]^7        ^8[^3Lines↑^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	case 10:
+		drawMultiColor(0, 1, "^8[^7Req. No.^8]    ^8[^7Tags^8]         ^8[^7HTTP Code^8]^7    ^8[^7Words^8]^7        ^8[^7Chars^8]^7        ^8[^3Lines↓^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	default:
+		drawMultiColor(0, 1, "^8[^7Req. No.^8]    ^8[^7Tags^8]         ^8[^7HTTP Code^8]^7    ^8[^7Words^8]^7        ^8[^7Chars^8]^7        ^8[^7Lines^8]^7        ^8[^7Payload^8]^7", termbox.ColorBlue)
+	}
 	if len(r) > 0 {
 		if r_pos < 0 {
 			cur = 0
