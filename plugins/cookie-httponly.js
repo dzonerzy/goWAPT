@@ -17,7 +17,7 @@ function test(base_request){
   if(cookieval != null) {
     if(String(cookieval.curVal)toLowerCase().indexOf(" httponly") == -1){
       vuln = Scanner.makePassedTest(
-        "Cookies are not protected agains Javascript",
+        "Cookies are not protected against Javascript",
         Utils.httpToString(base_request),
         "",
         cookieval.curValue,
