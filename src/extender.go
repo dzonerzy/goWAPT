@@ -30,6 +30,7 @@ func initExtender() {
 			}
 		}
 		HTTPInterceptor = JSHTTPInterceptor(callback)
+		_ = v
 	})
 
 	JSVM.Set("dumpResponse", func(req_resp interface{}, path string) otto.Value {
